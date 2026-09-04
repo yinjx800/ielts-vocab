@@ -102,6 +102,7 @@ const DataManager = {
       list = list.filter(w => 
         (w.word && w.word.toLowerCase().includes(q)) ||
         (w.meaning && w.meaning.toLowerCase().includes(q)) ||
+        (w.en_definition && w.en_definition.toLowerCase().includes(q)) ||
         (w.examples && w.examples.some(ex => ex.toLowerCase().includes(q))) ||
         (w.id && w.id.toLowerCase().includes(q))
       );
@@ -587,6 +588,7 @@ function renderWordsGrid(words) {
 
           <div class="text-xs font-mono text-slate-400 mb-2">${w.phonetic || ''}</div>
           <div class="text-sm font-semibold text-slate-800 line-clamp-2">${w.meaning || '暂无释义'}</div>
+          ${w.en_definition ? `<div class="text-xs text-slate-500 font-medium line-clamp-2 mt-1.5 italic">${w.en_definition}</div>` : ''}
         </div>
 
         ${w.collocations && w.collocations.length > 0 ? `
@@ -763,6 +765,16 @@ function renderCurrentFlashcard() {
   document.getElementById('fcBackWord').textContent = word.display_word || word.word;
   document.getElementById('fcBackPhonetic').textContent = word.phonetic || '';
   document.getElementById('fcBackMeaning').textContent = word.meaning || '暂无释义';
+  const enDefEl = document.getElementById('fcBackEnDefinition');
+  if (enDefEl) {
+    if (word.en_definition) {
+      enDefEl.textContent = word.en_definition;
+      enDefEl.classList.remove('hidden');
+    } else {
+      enDefEl.textContent = '';
+      enDefEl.classList.add('hidden');
+    }
+  }
   document.getElementById('fcBackPage').textContent = word.page ? `P.${String(word.page).padStart(3, '0')}` : '';
 
   // Collocations
@@ -1231,6 +1243,7 @@ function renderNotebookWords() {
         </div>
         <div class="text-xs font-mono text-slate-400 mb-1.5">${w.phonetic || ''}</div>
         <div class="text-sm font-semibold text-slate-800 line-clamp-2">${w.meaning || ''}</div>
+        ${w.en_definition ? `<div class="text-xs text-slate-500 font-medium line-clamp-2 mt-1.5 italic">${w.en_definition}</div>` : ''}
       </div>
 
       <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
@@ -1403,6 +1416,17 @@ async function openWordDetailModal(wordId) {
   document.getElementById('wdWord').textContent = word.display_word || word.word;
   document.getElementById('wdPhonetic').textContent = word.phonetic || '';
   document.getElementById('wdMeaning').textContent = word.meaning || '暂无详细释义';
+
+  const enDefEl = document.getElementById('wdEnDefinition');
+  const enCont = document.getElementById('wdEnContainer');
+  if (enDefEl && enCont) {
+    if (word.en_definition) {
+      enCont.classList.remove('hidden');
+      enDefEl.textContent = word.en_definition;
+    } else {
+      enCont.classList.add('hidden');
+    }
+  }
 
   document.getElementById('wdCollocations').textContent = (word.collocations && word.collocations.length > 0) ? word.collocations.join('; ') : '暂无高频搭配';
   document.getElementById('wdExamples').textContent = (word.examples && word.examples.length > 0) ? word.examples[0] : '暂无真题例句';
