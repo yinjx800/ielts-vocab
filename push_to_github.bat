@@ -22,7 +22,8 @@ if %errorlevel% equ 0 (
     echo   [成功] 代码已全部推送到你的 GitHub 仓库！
     echo ========================================================
     echo.
-    echo 下一步：打开 zeabur.com 或 render.com 选择该仓库一键部署即可！
+    echo 下一步：前往你的 GitHub 仓库开启 GitHub Pages，即可拥有终身免费网址：
+    echo https://yinjx800.github.io/ielts-vocab/
 ) else (
     echo.
     echo [提示] 推送遇到问题，请检查网络或 GitHub 登录授权。
