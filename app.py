@@ -433,8 +433,10 @@ def get_stats():
         "mastery_rate": round((mastered / total_words * 100), 1) if total_words > 0 else 0
     }
 
-# Mount static folder
+# Mount data and static folders
+app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+
 
 if __name__ == "__main__":
     import uvicorn
