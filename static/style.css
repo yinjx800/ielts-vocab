@@ -1,0 +1,92 @@
+/* Custom Style & 3D Transitions */
+body {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Hide scrollbar for tabs navigation */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Nav Tabs Styling */
+.nav-tab {
+  color: #64748b;
+}
+.nav-tab:hover {
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+.nav-tab.active {
+  color: #ea580c;
+  background-color: #fff7ed;
+  border: 1px solid #ffedd5;
+}
+
+/* Filter pills */
+.filter-pill {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+.filter-pill:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+.filter-pill.active {
+  background-color: #0f172a;
+  color: #ffffff;
+}
+
+/* Notebook tab buttons */
+.nb-tab-btn {
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+.nb-tab-btn.active {
+  background-color: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+/* 3D Flashcard flip */
+.flashcard-scene {
+  perspective: 1200px;
+}
+.flashcard-card {
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.flashcard-card.is-flipped {
+  transform: rotateY(180deg);
+}
+.flashcard-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flashcard-back {
+  transform: rotateY(180deg);
+}
+
+/* Shake Animation for incorrect spelling */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+.shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Pulse Glow for correct answer */
+@keyframes correctGlow {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+.correct-glow {
+  animation: correctGlow 0.8s ease-out;
+}

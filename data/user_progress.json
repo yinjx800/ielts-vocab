@@ -1,0 +1,222 @@
+{
+  "1_1_mishap": {
+    "repetition": 1,
+    "interval": 3.0,
+    "ease_factor": 2.65,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:28:59.852598",
+        "rating": 4,
+        "mode": "flashcard"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:28:59.852598",
+    "next_review": "2026-09-07T13:28:59.852598"
+  },
+  "1_2_catastrophic": {
+    "repetition": 1,
+    "interval": 1.0,
+    "ease_factor": 2.3,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:29:00.911552",
+        "rating": 1,
+        "mode": "quiz"
+      },
+      {
+        "timestamp": "2026-09-04T13:29:44.365050",
+        "rating": 3,
+        "mode": "flashcard"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:29:44.365050",
+    "next_review": "2026-09-05T13:29:44.365050"
+  },
+  "1_3_calamity": {
+    "repetition": 1,
+    "interval": 1.0,
+    "ease_factor": 2.5,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:29:46.038956",
+        "rating": 3,
+        "mode": "flashcard"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:29:46.038956",
+    "next_review": "2026-09-05T13:29:46.038956"
+  },
+  "1_4_endanger": {
+    "repetition": 1,
+    "interval": 1.0,
+    "ease_factor": 2.5,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:29:49.549410",
+        "rating": 3,
+        "mode": "flashcard"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:29:49.549410",
+    "next_review": "2026-09-05T13:29:49.549410"
+  },
+  "1_5_jeopardise": {
+    "repetition": 1,
+    "interval": 1.0,
+    "ease_factor": 2.5,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:29:51.099102",
+        "rating": 3,
+        "mode": "flashcard"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:29:51.099102",
+    "next_review": "2026-09-05T13:29:51.099102"
+  },
+  "1_6_destructive": {
+    "repetition": 1,
+    "interval": 3.0,
+    "ease_factor": 2.45,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:30:03.948732",
+        "rating": 1,
+        "mode": "spelling"
+      },
+      {
+        "timestamp": "2026-09-04T13:30:55.818242",
+        "rating": 4,
+        "mode": "quiz"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:30:55.818242",
+    "next_review": "2026-09-07T13:30:55.818242"
+  },
+  "1_1_pebble": {
+    "repetition": 1,
+    "interval": 3.0,
+    "ease_factor": 2.65,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:30:16.081019",
+        "rating": 4,
+        "mode": "spelling"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:30:16.081019",
+    "next_review": "2026-09-07T13:30:16.081019"
+  },
+  "1_2_magnet": {
+    "repetition": 1,
+    "interval": 3.0,
+    "ease_factor": 2.65,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:30:20.609129",
+        "rating": 4,
+        "mode": "spelling"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:30:20.609129",
+    "next_review": "2026-09-07T13:30:20.609129"
+  },
+  "1_1_ore": {
+    "repetition": 1,
+    "interval": 3.0,
+    "ease_factor": 2.65,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:30:23.759008",
+        "rating": 4,
+        "mode": "spelling"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:30:23.759008",
+    "next_review": "2026-09-07T13:30:23.759008"
+  },
+  "1_2_mineral": {
+    "repetition": 1,
+    "interval": 3.0,
+    "ease_factor": 2.65,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:30:31.380955",
+        "rating": 4,
+        "mode": "spelling"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:30:31.380955",
+    "next_review": "2026-09-07T13:30:31.380955"
+  },
+  "1_3_marble": {
+    "repetition": 1,
+    "interval": 3.0,
+    "ease_factor": 2.65,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:30:35.463388",
+        "rating": 4,
+        "mode": "spelling"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:30:35.463388",
+    "next_review": "2026-09-07T13:30:35.463388"
+  },
+  "1_4_quartz": {
+    "repetition": 1,
+    "interval": 3.0,
+    "ease_factor": 2.65,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:30:44.781961",
+        "rating": 4,
+        "mode": "spelling"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:30:44.781961",
+    "next_review": "2026-09-07T13:30:44.781961"
+  },
+  "1_5_granite": {
+    "repetition": 1,
+    "interval": 3.0,
+    "ease_factor": 2.65,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:30:49.526895",
+        "rating": 4,
+        "mode": "spelling"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:30:49.526895",
+    "next_review": "2026-09-07T13:30:49.526895"
+  },
+  "1_6_gust": {
+    "repetition": 1,
+    "interval": 3.0,
+    "ease_factor": 2.65,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:30:57.913827",
+        "rating": 4,
+        "mode": "quiz"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:30:57.913827",
+    "next_review": "2026-09-07T13:30:57.913827"
+  },
+  "1_7_breeze": {
+    "repetition": 1,
+    "interval": 3.0,
+    "ease_factor": 2.65,
+    "history": [
+      {
+        "timestamp": "2026-09-04T13:31:00.391081",
+        "rating": 4,
+        "mode": "quiz"
+      }
+    ],
+    "last_reviewed": "2026-09-04T13:31:00.391081",
+    "next_review": "2026-09-07T13:31:00.391081"
+  }
+}
