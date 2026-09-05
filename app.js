@@ -71,12 +71,36 @@ const DataManager = {
 
   getStarred() {
     try {
-      return new Set(JSON.parse(localStorage.getItem('ielts_user_starred') || '[]'));
+      const arr = JSON.parse(localStorage.getItem('ielts_user_starred') || '[]');
+      const set = new Set();
+      arr.forEach(id => {
+        set.add(id);
+        if (typeof id === 'number') set.add(String(id));
+        else if (!isNaN(Number(id)) && typeof id === 'string') set.add(Number(id));
+      });
+      return set;
     } catch (e) { return new Set(); }
   },
 
   saveStarred(set) {
     localStorage.setItem('ielts_user_starred', JSON.stringify([...set]));
+  },
+
+  setWordStarred(word_id, starredState = true) {
+    const starred = this.getStarred();
+    if (starredState) {
+      starred.add(word_id);
+    } else {
+      starred.delete(word_id);
+      starred.delete(String(word_id));
+      if (!isNaN(Number(word_id))) starred.delete(Number(word_id));
+    }
+    this.saveStarred(starred);
+    return { status: 'success', word_id, is_starred: starredState };
+  },
+
+  starWord(word_id) {
+    return this.setWordStarred(word_id, true);
   },
 
   getMistakes() {
@@ -330,11 +354,17 @@ const DataManager = {
     return { status: 'success', word_id, is_starred };
   },
 
+  getStarredCount() {
+    try {
+      const arr = JSON.parse(localStorage.getItem('ielts_user_starred') || '[]');
+      return new Set(arr).size;
+    } catch (e) { return 0; }
+  },
+
   getStats() {
     const total = (this.wordsData && this.wordsData.words) ? this.wordsData.words.length : 0;
     const progress = this.getProgress();
     const mistakes = this.getMistakes();
-    const starred = this.getStarred();
     const now = new Date();
 
     let learned = 0, mastered = 0, due = 0;
@@ -350,7 +380,7 @@ const DataManager = {
       mastered,
       due_review: due,
       mistakes_count: Object.keys(mistakes).length,
-      starred_count: starred.size,
+      starred_count: this.getStarredCount(),
       mastery_rate: total > 0 ? Math.round((mastered / total) * 1000) / 10 : 0
     };
   }
@@ -819,8 +849,10 @@ function renderCurrentFlashcard() {
   document.getElementById('fcFrontChapter').textContent = `Chapter ${word.chapter_id || state.currentChapterId}`;
 
   // Star status
+  const isStarred = DataManager.getStarred().has(word.id);
+  word.is_starred = isStarred;
   const starBtn = document.getElementById('fcStarBtn');
-  starBtn.innerHTML = `<i data-lucide="star" class="w-5 h-5 ${word.is_starred ? 'fill-amber-400 text-amber-400' : 'text-slate-400'}"></i>`;
+  starBtn.innerHTML = `<i data-lucide="star" class="w-5 h-5 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-slate-400'}"></i>`;
 
   // Back data
   document.getElementById('fcBackWord').textContent = word.display_word || word.word;
@@ -899,8 +931,10 @@ async function rateCard(rating) {
   const item = sess.items[sess.currentIndex];
   if (!item) return;
 
+  const wordKey = item.id !== undefined ? item.id : `${item.chapter_id}_${item.word}`;
+
   DataManager.recordProgress({
-    word_id: item.id || `${item.chapter_id}_${item.word}`,
+    word_id: wordKey,
     word: item.word,
     rating: rating,
     study_mode: 'flashcard'
@@ -921,7 +955,27 @@ async function rateCard(rating) {
   const frontEnCont = document.getElementById('fcFrontEnDefContainer');
   if (frontEnCont) frontEnCont.classList.remove('hidden');
 
-  // 2. 切换底部操作区为“下一个单词”与评级状态反馈
+  // 2. 若选择“模糊”(2) 或 “不认识”(1)，自动加入生词本
+  let autoStarred = false;
+  if (rating === 1 || rating === 2) {
+    DataManager.starWord(wordKey);
+    item.is_starred = true;
+    autoStarred = true;
+
+    // 若是非本书词汇，同步持久化到本地自定义词库中，确保在生词本中能完整呈现
+    if (!item.chapter_id) {
+      DataManager.saveCustomWord(item);
+    }
+
+    const starBtn = document.getElementById('fcStarBtn');
+    if (starBtn) {
+      starBtn.innerHTML = `<i data-lucide="star" class="w-5 h-5 fill-amber-400 text-amber-400"></i>`;
+    }
+
+    loadGlobalStats();
+  }
+
+  // 3. 切换底部操作区为“下一个单词”与评级状态反馈
   const ratingBtns = document.getElementById('fcRatingButtons');
   const nextBar = document.getElementById('fcNextActionBar');
   const feedbackEl = document.getElementById('fcRatingFeedback');
@@ -934,12 +988,22 @@ async function rateCard(rating) {
   }[rating] || { text: '已记录记忆状态', bg: 'bg-slate-100', textCol: 'text-slate-700', icon: 'check' };
 
   if (feedbackEl) {
+    const autoStarHtml = autoStarred
+      ? `<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-xs animate-pulse">
+           <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-500 text-amber-500"></i>
+           <span>已自动加入生词本</span>
+         </span>`
+      : '';
+
     feedbackEl.innerHTML = `
-      <span class="px-3 py-1.5 rounded-full ${ratingInfo.bg} ${ratingInfo.textCol} text-xs font-bold flex items-center gap-1.5 shadow-xs">
-        <i data-lucide="${ratingInfo.icon}" class="w-3.5 h-3.5"></i>
-        <span>已记录：${ratingInfo.text}</span>
-      </span>
-      <span class="text-xs text-slate-500 hidden sm:inline">已自动揭晓英文释义与真题搭配</span>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="px-3 py-1.5 rounded-full ${ratingInfo.bg} ${ratingInfo.textCol} text-xs font-bold flex items-center gap-1.5 shadow-xs">
+          <i data-lucide="${ratingInfo.icon}" class="w-3.5 h-3.5"></i>
+          <span>已记录：${ratingInfo.text}</span>
+        </span>
+        ${autoStarHtml}
+        <span class="text-xs text-slate-500 hidden sm:inline">已自动揭晓英文释义与真题搭配</span>
+      </div>
     `;
   }
 
@@ -1308,6 +1372,7 @@ async function loadNotebookWords() {
     });
     state.notebookWords = data.items;
     renderNotebookWords();
+    loadGlobalStats();
   } catch (err) {
     console.error('Failed to load notebook words:', err);
   }
@@ -1407,21 +1472,35 @@ async function loadGlobalStats() {
   try {
     const data = DataManager.getStats();
 
-    document.getElementById('statGlobalTotal').textContent = data.total_words;
-    document.getElementById('statGlobalLearned').textContent = data.learned;
-    document.getElementById('statGlobalMastered').textContent = data.mastered;
-    document.getElementById('statGlobalDue').textContent = data.due_review;
-    document.getElementById('statGlobalRate').textContent = `${data.mastery_rate}%`;
+    const elTotal = document.getElementById('statTotalWords') || document.getElementById('statGlobalTotal');
+    if (elTotal) elTotal.textContent = data.total_words;
 
-    document.getElementById('nbStarredCount').textContent = data.starred_count;
-    document.getElementById('nbMistakesCount').textContent = data.mistakes_count;
+    const elLearned = document.getElementById('statLearnedWords') || document.getElementById('statGlobalLearned');
+    if (elLearned) elLearned.textContent = data.learned;
+
+    const elMastered = document.getElementById('statMasteredWords') || document.getElementById('statGlobalMastered');
+    if (elMastered) elMastered.textContent = data.mastered;
+
+    const elDue = document.getElementById('statDueReview') || document.getElementById('statGlobalDue');
+    if (elDue) elDue.textContent = data.due_review;
+
+    const elRate = document.getElementById('statMasteryRate') || document.getElementById('statGlobalRate');
+    if (elRate) elRate.textContent = `${data.mastery_rate}%`;
+
+    const elStarred = document.getElementById('nbStarredCount');
+    if (elStarred) elStarred.textContent = data.starred_count;
+
+    const elMistakes = document.getElementById('nbMistakesCount');
+    if (elMistakes) elMistakes.textContent = data.mistakes_count;
 
     const badge = document.getElementById('notebookBadge');
-    if (data.mistakes_count > 0) {
-      badge.textContent = data.mistakes_count;
-      badge.classList.remove('hidden');
-    } else {
-      badge.classList.add('hidden');
+    if (badge) {
+      if (data.mistakes_count > 0) {
+        badge.textContent = data.mistakes_count;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
     }
 
     renderChapterProgressTable();
