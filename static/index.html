@@ -60,7 +60,7 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="font-extrabold text-lg text-slate-900 tracking-tight">雅思词汇真经</span>
-            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">v2.5 生词本联动版</span>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">v2.6 智能随机抽测版</span>
           </div>
           <p class="text-xs text-slate-400 hidden sm:block">刘洪波逻辑词群 · 五维记忆算法</p>
         </div>
@@ -253,7 +253,11 @@
           <div id="fcProgressBar" class="bg-gradient-to-r from-brand-500 to-amber-500 h-full w-0 transition-all duration-300"></div>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="toggleStarCurrentWord()" id="fcStarBtn" class="p-2 rounded-xl text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition">
+          <button onclick="reloadStudySession('flashcard')" class="p-2 rounded-xl text-slate-400 hover:text-brand-600 hover:bg-slate-100 transition flex items-center gap-1 text-xs font-medium cursor-pointer active:scale-95" title="重新随机换一组20词">
+            <i data-lucide="shuffle" class="w-4 h-4"></i>
+            <span class="hidden sm:inline text-slate-500">换一组</span>
+          </button>
+          <button onclick="toggleStarCurrentWord()" id="fcStarBtn" class="p-2 rounded-xl text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition cursor-pointer">
             <i data-lucide="star" class="w-5 h-5"></i>
           </button>
         </div>
@@ -400,7 +404,13 @@
         <!-- Header status -->
         <div class="flex justify-between items-center text-xs font-semibold text-slate-400">
           <span id="spellChapterTag">Chapter 1 拼写特训</span>
-          <span id="spellProgress">第 1 / 20 词</span>
+          <div class="flex items-center gap-2">
+            <span id="spellProgress">第 1 / 20 词</span>
+            <button onclick="reloadStudySession('spelling')" class="text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1 cursor-pointer active:scale-95 text-xs font-medium" title="重新随机换一组20词">
+              <i data-lucide="shuffle" class="w-3.5 h-3.5"></i>
+              <span>换一组</span>
+            </button>
+          </div>
         </div>
 
         <!-- Pronunciation trigger big button -->
@@ -472,8 +482,12 @@
               <div id="quizCombo" class="text-lg font-extrabold text-amber-500 font-mono">0</div>
             </div>
           </div>
-          <div class="text-center">
+          <div class="text-center flex flex-col items-center">
             <span id="quizProgress" class="text-xs font-semibold text-slate-400">题目 1 / 20</span>
+            <button onclick="reloadStudySession('quiz')" class="text-[11px] text-brand-600 hover:text-brand-700 font-bold hover:underline flex items-center gap-1 mt-0.5 cursor-pointer active:scale-95" title="重新随机抽取本单元20个单词">
+              <i data-lucide="shuffle" class="w-3 h-3"></i>
+              <span>换一组随机词</span>
+            </button>
           </div>
           <div class="text-right">
             <div class="text-xs font-bold text-slate-400">当前得分</div>
@@ -740,7 +754,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="./app.js?v=20260905_v41"></script>
+  <script src="./app.js?v=20260905_v42"></script>
 </body>
 </html>
 

@@ -1,6 +1,19 @@
 // 雅思词汇真经 · 核心前端控制系统 (支持 GitHub Pages 纯静态与本地环境)
 
 // ----------------------------------------------------
+// 🎲 Utility: Fisher-Yates Array Shuffle (完全均匀随机乱序算法)
+// ----------------------------------------------------
+function shuffleArray(array) {
+  if (!array || !Array.isArray(array)) return [];
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ----------------------------------------------------
 // 💾 Universal Client-Side DataManager
 // ----------------------------------------------------
 const DataManager = {
@@ -205,6 +218,10 @@ const DataManager = {
   getStudySession(chapter_id, mode, count = 20) {
     const cid = parseInt(chapter_id);
     const words = (this.wordsData && this.wordsData.words) ? this.wordsData.words.filter(w => w.chapter_id === cid) : [];
+    if (!words || words.length === 0) {
+      return { chapter_id: cid, mode, count: 0, due_count: 0, new_count: 0, items: [] };
+    }
+
     const progress = this.getProgress();
     const starred = this.getStarred();
     const mistakes = this.getMistakes();
@@ -234,27 +251,75 @@ const DataManager = {
       }
     });
 
+    const targetCount = Math.min(count, words.length);
     const session_batch = [];
-    session_batch.push(...due_words.slice(0, count));
-    let remaining = count - session_batch.length;
-    if (remaining > 0) {
-      session_batch.push(...mistake_words.slice(0, remaining));
-      remaining = count - session_batch.length;
+
+    if (mode === 'quiz') {
+      // 🎯 单词测验模式：确保每组 20 个单词都是真正随机抽取的，杜绝每组单词完全相同的现象
+      // 算法策略：优先从待复习与错题池中随机选取少量（最多不超过总数的 30% 即 6 词），其余名额从当前单元所有单词中均匀随机抽取
+      const priorityPool = shuffleArray([...due_words, ...mistake_words]);
+      const normalPool = shuffleArray([...new_words, ...learned_words]);
+      const pickedIds = new Set();
+
+      const maxPriority = Math.min(6, priorityPool.length);
+      for (let i = 0; i < maxPriority; i++) {
+        const item = priorityPool[i];
+        if (!pickedIds.has(item.id)) {
+          pickedIds.add(item.id);
+          session_batch.push(item);
+        }
+      }
+
+      for (const item of normalPool) {
+        if (session_batch.length >= targetCount) break;
+        if (!pickedIds.has(item.id)) {
+          pickedIds.add(item.id);
+          session_batch.push(item);
+        }
+      }
+
+      // 如果未满（如生词数量少），继续从 priorityPool 补充
+      if (session_batch.length < targetCount) {
+        for (const item of priorityPool) {
+          if (session_batch.length >= targetCount) break;
+          if (!pickedIds.has(item.id)) {
+            pickedIds.add(item.id);
+            session_batch.push(item);
+          }
+        }
+      }
+    } else {
+      // 🎴 闪卡记忆与听写拼写模式：按艾宾浩斯复习优先级依次抽取，但每个词池内均执行 Fisher-Yates 随机乱序
+      const shuffledDue = shuffleArray(due_words);
+      const shuffledMistakes = shuffleArray(mistake_words);
+      const shuffledNew = shuffleArray(new_words);
+      const shuffledLearned = shuffleArray(learned_words);
+
+      session_batch.push(...shuffledDue.slice(0, targetCount));
+      let remaining = targetCount - session_batch.length;
+      if (remaining > 0) {
+        session_batch.push(...shuffledMistakes.slice(0, remaining));
+        remaining = targetCount - session_batch.length;
+      }
+      if (remaining > 0) {
+        session_batch.push(...shuffledNew.slice(0, remaining));
+        remaining = targetCount - session_batch.length;
+      }
+      if (remaining > 0) {
+        session_batch.push(...shuffledLearned.slice(0, remaining));
+      }
     }
-    if (remaining > 0) {
-      session_batch.push(...new_words.slice(0, remaining));
-      remaining = count - session_batch.length;
-    }
-    if (remaining > 0) {
-      session_batch.push(...learned_words.slice(0, remaining));
-    }
+
+    // 将选出的单词整体再次执行 Fisher-Yates 随机乱序打散题序
+    const final_batch = shuffleArray(session_batch);
 
     if (mode === 'quiz') {
       const allWords = (this.wordsData && this.wordsData.words) ? this.wordsData.words : [];
-      session_batch.forEach(item => {
-        const others = allWords.filter(ow => ow.word !== item.word && ow.meaning).sort(() => 0.5 - Math.random());
-        const distractors = others.slice(0, 3).map(d => d.meaning);
-        const options = [item.meaning, ...distractors].sort(() => 0.5 - Math.random());
+      final_batch.forEach(item => {
+        const others = allWords.filter(ow => ow.word !== item.word && ow.meaning);
+        const shuffledOthers = shuffleArray(others);
+        const distractors = shuffledOthers.slice(0, 3).map(d => d.meaning);
+        const options = shuffleArray([item.meaning, ...distractors]);
         item.quiz_options = options;
         item.correct_option = item.meaning;
       });
@@ -263,10 +328,10 @@ const DataManager = {
     return {
       chapter_id: cid,
       mode,
-      count: session_batch.length,
+      count: final_batch.length,
       due_count: due_words.length,
       new_count: new_words.length,
-      items: session_batch
+      items: final_batch
     };
   },
 
@@ -565,6 +630,9 @@ function changeChapter(chapterId) {
   state.flashcardSession.items = [];
   state.spellingSession.items = [];
   state.quizSession.items = [];
+  if (['flashcard', 'spelling', 'quiz'].includes(state.currentTab)) {
+    loadStudySessionData(state.currentTab, true);
+  }
 }
 
 async function loadChapterWords() {
@@ -753,6 +821,15 @@ async function startSessionWithMode(mode) {
     state[`${mode}Session`].currentIndex = 0;
   }
   switchTab(mode);
+  await loadStudySessionData(mode, true);
+}
+
+async function reloadStudySession(mode) {
+  if (state[`${mode}Session`]) {
+    state[`${mode}Session`].items = [];
+    state[`${mode}Session`].currentIndex = 0;
+  }
+  await loadStudySessionData(mode, true);
 }
 
 async function loadStudySessionData(mode, forceReload = false) {
@@ -1445,7 +1522,7 @@ function startNotebookSpecialTraining() {
     alert('当前列表中没有单词可特训');
     return;
   }
-  state.flashcardSession.items = [...state.notebookWords];
+  state.flashcardSession.items = shuffleArray(state.notebookWords);
   state.flashcardSession.currentIndex = 0;
   state.flashcardSession.isFlipped = false;
   switchTab('flashcard');
