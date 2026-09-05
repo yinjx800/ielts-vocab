@@ -60,23 +60,27 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="font-extrabold text-lg text-slate-900 tracking-tight">雅思词汇真经</span>
-            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">v2.3 自动翻转释义版</span>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">v2.4 全网词库查词版</span>
           </div>
           <p class="text-xs text-slate-400 hidden sm:block">刘洪波逻辑词群 · 五维记忆算法</p>
         </div>
       </div>
 
-      <!-- Quick Chapter Selector & Search -->
-      <div class="flex-1 max-w-md relative hidden md:block">
+      <!-- Quick Chapter Selector & Universal Search -->
+      <div class="flex-1 max-w-sm sm:max-w-md relative mx-2">
         <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
         <input 
           type="text" 
           id="globalSearchInput" 
-          placeholder="搜索单词、中文释义或真题例句..." 
-          class="w-full pl-10 pr-4 py-2 text-sm bg-slate-100/80 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 focus:bg-white transition-all placeholder:text-slate-400"
+          placeholder="全网查词：搜本书或任意英文单词..." 
+          class="w-full pl-10 pr-8 py-2 text-sm bg-slate-100/80 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 focus:bg-white transition-all placeholder:text-slate-400"
           oninput="handleGlobalSearch(this.value)"
+          onkeydown="if(event.key === 'Enter') handleSearchEnter(this.value)"
         >
-        <div id="searchDropdown" class="hidden absolute top-full mt-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden max-h-96 overflow-y-auto z-50"></div>
+        <button id="searchClearBtn" onclick="clearSearchInput()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+        <div id="searchDropdown" class="hidden absolute top-full left-0 right-0 mt-2 w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden max-h-96 overflow-y-auto z-50"></div>
       </div>
 
       <!-- Top Right Controls -->
@@ -736,7 +740,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="./app.js?v=20260905_v30"></script>
+  <script src="./app.js?v=20260905_v40"></script>
 </body>
 </html>
 

@@ -5,6 +5,8 @@
 // ----------------------------------------------------
 const DataManager = {
   wordsData: null,
+  globalDict: null,
+  isGlobalDictLoading: false,
   isInitialized: false,
 
   async init() {
@@ -23,6 +25,38 @@ const DataManager = {
       }
     }
     this.isInitialized = true;
+    // 异步低优先级静默预加载全网4.3万词库
+    setTimeout(() => this.loadGlobalDict(), 2000);
+  },
+
+  async loadGlobalDict() {
+    if (this.globalDict || this.isGlobalDictLoading) return;
+    this.isGlobalDictLoading = true;
+    try {
+      const res = await fetch('./data/global_dict.json');
+      if (res.ok) {
+        this.globalDict = await res.json();
+        console.log('Global Dictionary loaded (43,726 words)');
+      }
+    } catch (e) {
+      console.warn('Failed to load global_dict.json:', e);
+    } finally {
+      this.isGlobalDictLoading = false;
+    }
+  },
+
+  getCustomWords() {
+    try {
+      return JSON.parse(localStorage.getItem('ielts_custom_words') || '{}');
+    } catch (e) { return {}; }
+  },
+
+  saveCustomWord(wordObj) {
+    try {
+      const custom = this.getCustomWords();
+      custom[wordObj.id] = wordObj;
+      localStorage.setItem('ielts_custom_words', JSON.stringify(custom));
+    } catch (e) {}
   },
 
   getProgress() {
@@ -85,9 +119,14 @@ const DataManager = {
       };
     });
   },
-
   getWords({ chapter_id, filter_status = 'all', page = 1, limit = 60, query = '' }) {
     let list = (this.wordsData && this.wordsData.words) ? [...this.wordsData.words] : [];
+    const customWords = Object.values(this.getCustomWords());
+    if (customWords.length > 0) {
+      customWords.forEach(cw => {
+        if (!list.some(w => w.id === cw.id)) list.push(cw);
+      });
+    }
     const progress = this.getProgress();
     const starred = this.getStarred();
     const mistakes = this.getMistakes();
@@ -1424,55 +1463,297 @@ function renderChapterProgressTable() {
 }
 
 // ----------------------------------------------------
-// Global Search
+// Universal Global Search (本书核心 + 4.3万离线词典 + 全球词网在线查词)
 // ----------------------------------------------------
 let searchDebounceTimer = null;
+let currentSearchQuery = '';
+
+function clearSearchInput() {
+  const input = document.getElementById('globalSearchInput');
+  const clearBtn = document.getElementById('searchClearBtn');
+  const dropdown = document.getElementById('searchDropdown');
+  if (input) input.value = '';
+  if (clearBtn) clearBtn.classList.add('hidden');
+  if (dropdown) dropdown.classList.add('hidden');
+}
+
+function handleSearchEnter(query) {
+  const q = query ? query.trim() : '';
+  if (!q) return;
+  const dropdown = document.getElementById('searchDropdown');
+  const firstItem = dropdown ? dropdown.querySelector('[data-word-item]') : null;
+  if (firstItem && firstItem.dataset.wordItem) {
+    try {
+      const itemObj = JSON.parse(decodeURIComponent(firstItem.dataset.wordItem));
+      selectSearchResultItem(itemObj);
+      return;
+    } catch (e) {}
+  }
+  // 否则直接执行在线查词
+  queryOnlineWord(q, false);
+}
+
 function handleGlobalSearch(query) {
   clearTimeout(searchDebounceTimer);
   const dropdown = document.getElementById('searchDropdown');
-  if (!query || query.trim().length < 2) {
-    dropdown.classList.add('hidden');
+  const clearBtn = document.getElementById('searchClearBtn');
+  const q = query ? query.trim() : '';
+  currentSearchQuery = q;
+
+  if (clearBtn) {
+    if (q.length > 0) clearBtn.classList.remove('hidden');
+    else clearBtn.classList.add('hidden');
+  }
+
+  if (!q || q.length < 1) {
+    if (dropdown) dropdown.classList.add('hidden');
     return;
   }
 
-  searchDebounceTimer = setTimeout(() => {
+  // 保证全网离线词典被触发加载
+  DataManager.loadGlobalDict();
+
+  searchDebounceTimer = setTimeout(async () => {
     try {
-      const data = DataManager.getWords({ query: query.trim(), limit: 10 });
-      
-      if (data.items.length === 0) {
-        dropdown.innerHTML = `<div class="p-4 text-xs text-slate-400 text-center">无匹配结果</div>`;
-      } else {
-        dropdown.innerHTML = data.items.map(w => `
-          <div class="p-3 border-b border-slate-100 hover:bg-brand-50/50 cursor-pointer transition flex items-center justify-between" onclick="selectSearchResult('${w.id}')">
-            <div>
-              <span class="font-bold text-slate-900 text-sm">${w.display_word || w.word}</span>
-              <span class="text-xs text-slate-400 font-mono ml-2">${w.phonetic || ''}</span>
-              <p class="text-xs text-slate-600 truncate mt-0.5">${w.meaning}</p>
-            </div>
-            <span class="text-[10px] text-slate-400 font-semibold px-2 py-0.5 rounded bg-slate-100">Ch.${w.chapter_id}</span>
-          </div>
-        `).join('');
-      }
       dropdown.classList.remove('hidden');
+      dropdown.innerHTML = `
+        <div class="p-4 text-xs text-slate-400 flex items-center justify-center gap-2">
+          <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-brand-500"></i>
+          <span>正在智能检索全网词库...</span>
+        </div>
+      `;
+      initIcons();
+
+      const qLower = q.toLowerCase();
+
+      // 1. 优先搜索本书 2,382 个雅思真经核心考点词
+      const bookData = DataManager.getWords({ query: q, limit: 5 });
+      const bookItems = bookData.items.map(w => ({
+        ...w,
+        source: 'book',
+        sourceLabel: `Chapter ${w.chapter_id} · 雅思核心`,
+        badgeClass: 'bg-amber-100 text-amber-800 border-amber-200'
+      }));
+
+      // 2. 搜索全网 43,726 个通用英汉大词库
+      const dictItems = [];
+      if (DataManager.globalDict) {
+        const gd = DataManager.globalDict;
+        // 精确匹配
+        if (gd[qLower] && !bookItems.some(b => b.word.toLowerCase() === qLower)) {
+          const [ph, tr, df] = gd[qLower];
+          dictItems.push({
+            id: `dict_${qLower}`,
+            word: qLower,
+            display_word: qLower,
+            phonetic: ph || '',
+            meaning: tr || '',
+            en_definition: df || '',
+            source: 'dict',
+            sourceLabel: '通用英汉词库',
+            badgeClass: 'bg-blue-100 text-blue-800 border-blue-200'
+          });
+        }
+
+        // 前缀联想匹配
+        let count = dictItems.length;
+        for (const [dw, info] of Object.entries(gd)) {
+          if (count >= 5) break;
+          if (dw === qLower) continue;
+          if (dw.startsWith(qLower) && !bookItems.some(b => b.word.toLowerCase() === dw)) {
+            dictItems.push({
+              id: `dict_${dw}`,
+              word: dw,
+              display_word: dw,
+              phonetic: info[0] || '',
+              meaning: info[1] || '',
+              en_definition: info[2] || '',
+              source: 'dict',
+              sourceLabel: '通用英汉词库',
+              badgeClass: 'bg-blue-100 text-blue-800 border-blue-200'
+            });
+            count++;
+          }
+        }
+      }
+
+      const combined = [...bookItems, ...dictItems];
+
+      // 底部在线全球词网检索按钮
+      const onlineActionHtml = `
+        <div class="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between hover:bg-brand-50/70 cursor-pointer text-xs text-brand-700 font-bold transition" onclick="queryOnlineWord('${q.replace(/'/g, "\\'")}')">
+          <span class="flex items-center gap-2">
+            <i data-lucide="globe" class="w-4 h-4 text-brand-600"></i>
+            <span>全球词网实时在线查词：「${q}」</span>
+          </span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 border border-brand-200">按回车立即查 ↵</span>
+        </div>
+      `;
+
+      if (combined.length === 0) {
+        // 本地词库暂无匹配，直接提供联网查询
+        dropdown.innerHTML = `
+          <div class="p-5 text-center space-y-3">
+            <p class="text-xs text-slate-500">本地词库暂未直接命中「${q}」</p>
+            <button onclick="queryOnlineWord('${q.replace(/'/g, "\\'")}')" class="px-5 py-2.5 rounded-xl bg-brand-600 text-white font-bold text-xs shadow-md shadow-brand-500/20 hover:bg-brand-700 transition flex items-center justify-center gap-2 mx-auto cursor-pointer">
+              <i data-lucide="globe" class="w-4 h-4"></i>
+              <span>立即联网查询全球词网释义</span>
+            </button>
+          </div>
+        `;
+        initIcons();
+        return;
+      }
+
+      dropdown.innerHTML = combined.map(w => {
+        const itemJson = encodeURIComponent(JSON.stringify(w));
+        return `
+          <div data-word-item="${itemJson}" class="p-3 border-b border-slate-100 hover:bg-brand-50/60 cursor-pointer transition flex items-center justify-between group" onclick='selectSearchResultItem(JSON.parse(decodeURIComponent("${itemJson}")))'>
+            <div class="flex-1 min-w-0 pr-3">
+              <div class="flex items-center gap-2">
+                <span class="font-extrabold text-slate-900 text-sm group-hover:text-brand-600 transition">${w.display_word || w.word}</span>
+                <span class="text-xs text-slate-400 font-mono">${w.phonetic || ''}</span>
+              </div>
+              <p class="text-xs text-slate-700 truncate mt-0.5 font-medium">${w.meaning || ''}</p>
+              ${w.en_definition ? `<p class="text-[11px] text-slate-400 truncate italic mt-0.5">${w.en_definition}</p>` : ''}
+            </div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded border shrink-0 ${w.badgeClass}">${w.sourceLabel}</span>
+          </div>
+        `;
+      }).join('') + onlineActionHtml;
+
+      initIcons();
+    } catch (e) {
+      console.error('Search error:', e);
+    }
+  }, 160);
+}
+
+// 联网在线查词引擎 (Datamuse + MyMemory)
+async function queryOnlineWord(query, isAuto = false) {
+  const dropdown = document.getElementById('searchDropdown');
+  const qClean = query.trim().toLowerCase();
+  
+  dropdown.innerHTML = `
+    <div class="p-6 text-xs text-slate-500 flex flex-col items-center justify-center gap-2">
+      <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-brand-600"></i>
+      <span class="font-semibold text-slate-700">正在联网检索「${qClean}」全球权威词网释义...</span>
+      <span class="text-[11px] text-slate-400">调用国际权威词典数据库实时解析</span>
+    </div>
+  `;
+  initIcons();
+
+  try {
+    // 1. 查询 Datamuse 权威英英释义与发音音标
+    let def_en = '';
+    let pron = '';
+    try {
+      const dmRes = await fetch(`https://api.datamuse.com/words?sp=${encodeURIComponent(qClean)}&md=dpr&max=1`, { signal: AbortSignal.timeout(6000) });
+      const dmData = await dmRes.json();
+      if (dmData && dmData.length > 0) {
+        const best = dmData[0];
+        if (best.defs && best.defs.length > 0) {
+          def_en = best.defs.map(d => d.replace(/^[a-z]+\t/, '')).join(' ; ');
+        }
+        if (best.tags) {
+          const pr = best.tags.find(t => t.startsWith('pron:'));
+          if (pr) pron = '/' + pr.replace('pron:', '').trim().toLowerCase() + '/';
+        }
+      }
+    } catch (e) {
+      console.warn('Datamuse fetch timeout:', e);
+    }
+
+    // 2. 查询通用机器翻译获取中文对照
+    let trans_zh = '';
+    try {
+      const mmRes = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(qClean)}&langpair=en|zh`, { signal: AbortSignal.timeout(4000) });
+      const mmData = await mmRes.json();
+      if (mmData && mmData.responseData && mmData.responseData.translatedText) {
+        const txt = mmData.responseData.translatedText;
+        if (!txt.includes('MYMEMORY') && !txt.includes('WARNING') && !txt.includes('LIMIT')) {
+          trans_zh = txt;
+        }
+      }
     } catch (e) {}
-  }, 150);
+
+    if (!def_en && !trans_zh) {
+      dropdown.innerHTML = `
+        <div class="p-5 text-center text-xs text-slate-500 space-y-1">
+          <p class="font-bold text-slate-700">未能查询到单词「${qClean}」</p>
+          <p class="text-slate-400">请检查拼写是否正确或尝试搜索其他词汇</p>
+        </div>
+      `;
+      initIcons();
+      return;
+    }
+
+    const onlineWordObj = {
+      id: `online_${qClean}`,
+      word: qClean,
+      display_word: qClean,
+      phonetic: pron,
+      meaning: trans_zh || '权威网络释义词条',
+      en_definition: def_en || 'Authoritative global dictionary definition',
+      source: 'online',
+      sourceLabel: '全球词网实时收录',
+      badgeClass: 'bg-purple-100 text-purple-800 border-purple-200'
+    };
+
+    selectSearchResultItem(onlineWordObj);
+  } catch (err) {
+    dropdown.innerHTML = `
+      <div class="p-5 text-center text-xs text-red-500">
+        <p>联网查询失败，请检查网络后重试</p>
+      </div>
+    `;
+    initIcons();
+  }
+}
+
+function selectSearchResultItem(wordObj) {
+  const dropdown = document.getElementById('searchDropdown');
+  const input = document.getElementById('globalSearchInput');
+  const clearBtn = document.getElementById('searchClearBtn');
+  if (dropdown) dropdown.classList.add('hidden');
+  if (input) input.value = '';
+  if (clearBtn) clearBtn.classList.add('hidden');
+  openWordDetailModal(wordObj.id, wordObj);
 }
 
 function selectSearchResult(wordId) {
-  document.getElementById('searchDropdown').classList.add('hidden');
-  document.getElementById('globalSearchInput').value = '';
-  openWordDetailModal(wordId);
+  selectSearchResultItem({ id: wordId });
 }
 
 // ----------------------------------------------------
-// Word Detail Modal
+// Word Detail Modal (支持本书词汇、全网词库与联网词条)
 // ----------------------------------------------------
-async function openWordDetailModal(wordId) {
+async function openWordDetailModal(wordId, externalWordObj = null) {
   let word = (state.words && state.words.find(w => w.id === wordId)) || 
              (state.notebookWords && state.notebookWords.find(w => w.id === wordId));
   
   if (!word && DataManager.wordsData) {
     word = DataManager.wordsData.words.find(w => w.id === wordId);
+  }
+  if (!word && externalWordObj) {
+    word = externalWordObj;
+  }
+  if (!word && DataManager.globalDict && DataManager.globalDict[wordId.replace('dict_', '').toLowerCase()]) {
+    const raw = DataManager.globalDict[wordId.replace('dict_', '').toLowerCase()];
+    word = {
+      id: wordId,
+      word: wordId.replace('dict_', ''),
+      display_word: wordId.replace('dict_', ''),
+      phonetic: raw[0] || '',
+      meaning: raw[1] || '',
+      en_definition: raw[2] || '',
+      source: 'dict',
+      sourceLabel: '全网通用词库'
+    };
+  }
+  if (!word) {
+    const custom = DataManager.getCustomWords();
+    if (custom[wordId]) word = custom[wordId];
   }
   if (!word) return;
 
@@ -1480,11 +1761,25 @@ async function openWordDetailModal(wordId) {
   word.is_starred = starred.has(word.id);
 
   state.selectedWord = word;
-  document.getElementById('wdChapterBadge').textContent = `Chapter ${word.chapter_id || state.currentChapterId} · ${word.chapter_name || ''}`;
+
+  // 区分并渲染来源徽章
+  const badgeEl = document.getElementById('wdChapterBadge');
+  if (word.chapter_id) {
+    badgeEl.textContent = `Chapter ${word.chapter_id} · ${word.chapter_name || ''}`;
+    badgeEl.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-brand-100 text-brand-800';
+  } else if (word.source === 'online') {
+    badgeEl.textContent = '🌐 全球词网实时查词 (已收录)';
+    badgeEl.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-purple-100 text-purple-800';
+  } else {
+    badgeEl.textContent = '📚 全网通用英汉大词典 (扩展词条)';
+    badgeEl.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800';
+  }
+
   document.getElementById('wdWord').textContent = word.display_word || word.word;
   document.getElementById('wdPhonetic').textContent = word.phonetic || '';
   document.getElementById('wdMeaning').textContent = word.meaning || '暂无详细释义';
 
+  // 英英释义卡片
   const enDefEl = document.getElementById('wdEnDefinition');
   const enCont = document.getElementById('wdEnContainer');
   if (enDefEl && enCont) {
@@ -1496,9 +1791,38 @@ async function openWordDetailModal(wordId) {
     }
   }
 
-  document.getElementById('wdCollocations').textContent = (word.collocations && word.collocations.length > 0) ? word.collocations.join('; ') : '暂无高频搭配';
-  document.getElementById('wdExamples').textContent = (word.examples && word.examples.length > 0) ? word.examples[0] : '暂无真题例句';
-  document.getElementById('wdMemory').textContent = word.memory_tip || '真经逻辑词群记忆词条';
+  // 高频搭配模块 (若无搭配则优雅隐去或占位)
+  const colCont = document.getElementById('wdCollocations') ? document.getElementById('wdCollocations').parentElement : null;
+  if (colCont) {
+    if (word.collocations && word.collocations.length > 0) {
+      colCont.classList.remove('hidden');
+      document.getElementById('wdCollocations').textContent = word.collocations.join('; ');
+    } else {
+      colCont.classList.add('hidden');
+    }
+  }
+
+  // 真题例句模块
+  const exCont = document.getElementById('wdExamples') ? document.getElementById('wdExamples').parentElement : null;
+  if (exCont) {
+    if (word.examples && word.examples.length > 0) {
+      exCont.classList.remove('hidden');
+      document.getElementById('wdExamples').textContent = word.examples[0];
+    } else {
+      exCont.classList.add('hidden');
+    }
+  }
+
+  // 词根助记模块
+  const memCont = document.getElementById('wdMemory') ? document.getElementById('wdMemory').parentElement : null;
+  if (memCont) {
+    if (word.memory_tip) {
+      memCont.classList.remove('hidden');
+      document.getElementById('wdMemory').textContent = word.memory_tip;
+    } else {
+      memCont.classList.add('hidden');
+    }
+  }
 
   const starBtn = document.getElementById('wdStarBtn');
   const starText = document.getElementById('wdStarText');
@@ -1525,9 +1849,16 @@ function playWordDetailAudio() {
 
 async function toggleStarInDetailModal() {
   if (!state.selectedWord) return;
-  const res = DataManager.toggleStar(state.selectedWord.id);
-  state.selectedWord.is_starred = res.is_starred;
-  openWordDetailModal(state.selectedWord.id);
+  const word = state.selectedWord;
+  const res = DataManager.toggleStar(word.id);
+  word.is_starred = res.is_starred;
+  
+  // 若是非本书词汇，同步持久化到本地自定义词库中，确保在生词本中能完整呈现
+  if (!word.chapter_id) {
+    DataManager.saveCustomWord(word);
+  }
+
+  openWordDetailModal(word.id, word);
 }
 
 async function toggleStarWord(wordId, wordText, buttonEl) {
