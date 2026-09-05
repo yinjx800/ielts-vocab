@@ -869,12 +869,16 @@ async function rateCard(rating) {
 
   sess.isRated = true;
 
-  // 1. 自动显示单词对应的英文释义与详尽考点：无论认识还是不认识，均自动翻面揭晓英英释义
-  if (!sess.isFlipped) {
-    flipFlashcard();
+  // 1. 强制翻转到背面并确保展开英文释义：无论认识还是不认识，均立即展示背面完整释义
+  sess.isFlipped = true;
+  const cardEl = document.getElementById('flashcardElement');
+  if (cardEl) {
+    cardEl.classList.add('is-flipped');
+    const backEl = cardEl.querySelector('.flashcard-back');
+    if (backEl) backEl.scrollTop = 0;
   }
 
-  // 同时揭晓正面的英文释义区块
+  // 同时揭晓正面的英文释义区块（防翻面被手动切回时仍可见）
   const frontEnCont = document.getElementById('fcFrontEnDefContainer');
   if (frontEnCont) frontEnCont.classList.remove('hidden');
 

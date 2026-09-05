@@ -52,23 +52,45 @@ body {
   border-color: #0f172a;
 }
 
-/* 3D Flashcard flip */
+/* 3D Flashcard flip (Cross-browser bulletproof) */
 .flashcard-scene {
   perspective: 1200px;
+  -webkit-perspective: 1200px;
 }
 .flashcard-card {
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  position: relative;
 }
 .flashcard-card.is-flipped {
   transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
 }
 .flashcard-face {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  transition: opacity 0.3s ease;
+}
+.flashcard-card.is-flipped .flashcard-front {
+  opacity: 0;
+  pointer-events: none;
+}
+.flashcard-card.is-flipped .flashcard-back {
+  opacity: 1;
+  pointer-events: auto;
+}
+.flashcard-card:not(.is-flipped) .flashcard-front {
+  opacity: 1;
+  pointer-events: auto;
+}
+.flashcard-card:not(.is-flipped) .flashcard-back {
+  opacity: 0;
+  pointer-events: none;
 }
 .flashcard-back {
   transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
 }
 
 /* Shake Animation for incorrect spelling */
