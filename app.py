@@ -271,18 +271,36 @@ def get_study_session(
         else:
             learned_words.append(w_dict)
             
-    # Combine according to pedagogy: due first, then mistakes, then new
-    session_batch = []
-    session_batch.extend(due_words[:count])
-    remaining = count - len(session_batch)
-    if remaining > 0:
-        session_batch.extend(mistake_words[:remaining])
+    import random
+    if mode in ["quiz", "cloze"]:
+        # 单词测验模式：全章节词汇均匀随机抽选
+        shuffled_all = list(words)
+        random.shuffle(shuffled_all)
+        session_batch = []
+        for w in shuffled_all[:count]:
+            wid = w.get("id") or f"{w.get('chapter_id')}_{w['word']}"
+            w_copy = dict(w)
+            w_copy["is_starred"] = (wid in starred) or (w["word"] in starred)
+            w_copy["is_mistake"] = (wid in mistakes) or (w["word"] in mistakes)
+            w_copy["progress"] = progress.get(wid)
+            session_batch.append(w_copy)
+    else:
+        random.shuffle(due_words)
+        random.shuffle(mistake_words)
+        random.shuffle(new_words)
+        random.shuffle(learned_words)
+        session_batch = []
+        session_batch.extend(due_words[:count])
         remaining = count - len(session_batch)
-    if remaining > 0:
-        session_batch.extend(new_words[:remaining])
-        remaining = count - len(session_batch)
-    if remaining > 0:
-        session_batch.extend(learned_words[:remaining])
+        if remaining > 0:
+            session_batch.extend(mistake_words[:remaining])
+            remaining = count - len(session_batch)
+        if remaining > 0:
+            session_batch.extend(new_words[:remaining])
+            remaining = count - len(session_batch)
+        if remaining > 0:
+            session_batch.extend(learned_words[:remaining])
+        random.shuffle(session_batch)
         
     # For Quiz mode, pre-generate distractors
     all_words_list = words_data.get("words", [])

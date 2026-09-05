@@ -255,13 +255,18 @@ const DataManager = {
     const session_batch = [];
 
     if (mode === 'quiz') {
-      // 🎯 单词测验模式：确保每组 20 个单词都是真正随机抽取的，杜绝每组单词完全相同的现象
-      // 算法策略：优先从待复习与错题池中随机选取少量（最多不超过总数的 30% 即 6 词），其余名额从当前单元所有单词中均匀随机抽取
+      // 🎯 单词测验模式：从当前单元所有单词中完全均匀随机抽取 20 词
+      // 优先融入少量待复习与错题（最多不超过 4 词），其余名额全量从本单元打散的所有词汇中无偏随机抽取
       const priorityPool = shuffleArray([...due_words, ...mistake_words]);
-      const normalPool = shuffleArray([...new_words, ...learned_words]);
-      const pickedIds = new Set();
+      const allShuffled = shuffleArray(words.map(w => ({
+        ...w,
+        is_starred: starred.has(w.id),
+        is_mistake: !!mistakes[w.id],
+        progress: progress[w.id] || null
+      })));
 
-      const maxPriority = Math.min(6, priorityPool.length);
+      const pickedIds = new Set();
+      const maxPriority = Math.min(4, priorityPool.length);
       for (let i = 0; i < maxPriority; i++) {
         const item = priorityPool[i];
         if (!pickedIds.has(item.id)) {
@@ -270,22 +275,11 @@ const DataManager = {
         }
       }
 
-      for (const item of normalPool) {
+      for (const item of allShuffled) {
         if (session_batch.length >= targetCount) break;
         if (!pickedIds.has(item.id)) {
           pickedIds.add(item.id);
           session_batch.push(item);
-        }
-      }
-
-      // 如果未满（如生词数量少），继续从 priorityPool 补充
-      if (session_batch.length < targetCount) {
-        for (const item of priorityPool) {
-          if (session_batch.length >= targetCount) break;
-          if (!pickedIds.has(item.id)) {
-            pickedIds.add(item.id);
-            session_batch.push(item);
-          }
         }
       }
     } else {
@@ -564,8 +558,9 @@ function switchTab(tabName) {
       renderCurrentSpelling();
     }
   } else if (tabName === 'quiz') {
-    if (!state.quizSession.items.length) {
-      loadStudySessionData('quiz');
+    const sess = state.quizSession;
+    if (!sess.items || !sess.items.length || sess.currentIndex >= sess.items.length) {
+      loadStudySessionData('quiz', true);
     } else {
       renderCurrentQuizQuestion();
     }
@@ -816,6 +811,7 @@ function playAudio(text) {
 // 🎴 艾宾浩斯智能卡片 (Flashcards)
 // ----------------------------------------------------
 async function startSessionWithMode(mode) {
+  state.isSessionLoading = false;
   if (state[`${mode}Session`]) {
     state[`${mode}Session`].items = [];
     state[`${mode}Session`].currentIndex = 0;
@@ -825,6 +821,7 @@ async function startSessionWithMode(mode) {
 }
 
 async function reloadStudySession(mode) {
+  state.isSessionLoading = false;
   if (state[`${mode}Session`]) {
     state[`${mode}Session`].items = [];
     state[`${mode}Session`].currentIndex = 0;
@@ -833,6 +830,7 @@ async function reloadStudySession(mode) {
 }
 
 async function loadStudySessionData(mode, forceReload = false) {
+  if (forceReload) state.isSessionLoading = false;
   if (state.isSessionLoading) return;
   
   const currentSess = state[`${mode}Session`];
