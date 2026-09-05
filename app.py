@@ -273,11 +273,12 @@ def get_study_session(
             
     import random
     if mode in ["quiz", "cloze"]:
-        # 单词测验模式：全章节词汇均匀随机抽选
+        # 单词测验模式：全章节词汇均匀随机抽选 50 词
+        effective_count = 50 if count == 20 else count
         shuffled_all = list(words)
         random.shuffle(shuffled_all)
         session_batch = []
-        for w in shuffled_all[:count]:
+        for w in shuffled_all[:effective_count]:
             wid = w.get("id") or f"{w.get('chapter_id')}_{w['word']}"
             w_copy = dict(w)
             w_copy["is_starred"] = (wid in starred) or (w["word"] in starred)

@@ -215,7 +215,7 @@ const DataManager = {
     return { total, page, limit, items };
   },
 
-  getStudySession(chapter_id, mode, count = 20) {
+  getStudySession(chapter_id, mode, count = (mode === 'quiz' ? 50 : 20)) {
     const cid = parseInt(chapter_id);
     const words = (this.wordsData && this.wordsData.words) ? this.wordsData.words.filter(w => w.chapter_id === cid) : [];
     if (!words || words.length === 0) {
@@ -255,7 +255,7 @@ const DataManager = {
     const session_batch = [];
 
     if (mode === 'quiz') {
-      // 🎯 单词测验模式：从当前单元所有单词中完全均匀随机抽取 20 词
+      // 🎯 单词测验模式：从当前单元所有单词中完全均匀随机抽取 50 词
       // 优先融入少量待复习与错题（最多不超过 4 词），其余名额全量从本单元打散的所有词汇中无偏随机抽取
       const priorityPool = shuffleArray([...due_words, ...mistake_words]);
       const allShuffled = shuffleArray(words.map(w => ({
@@ -852,7 +852,11 @@ async function loadStudySessionData(mode, forceReload = false) {
 
   state.isSessionLoading = true;
   try {
-    const data = DataManager.getStudySession(state.currentChapterId, mode, 20);
+    if (!DataManager.isInitialized) {
+      await DataManager.init();
+    }
+    const count = (mode === 'quiz') ? 50 : 20;
+    const data = DataManager.getStudySession(state.currentChapterId, mode, count);
     
     if (mode === 'flashcard') {
       state.flashcardSession.items = data.items || [];
@@ -1398,6 +1402,8 @@ function handleQuizTimeout() {
 function showSessionFinished(mode) {
   let viewId = `view-${mode}`;
   const container = document.getElementById(viewId);
+  const sess = (mode === 'flashcard' ? state.flashcardSession : (mode === 'spelling' ? state.spellingSession : state.quizSession));
+  const finishedCount = (sess && sess.items && sess.items.length) ? sess.items.length : (mode === 'quiz' ? 50 : 20);
   container.innerHTML = `
     <div class="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-xl text-center space-y-6 max-w-xl mx-auto">
       <div class="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl">
@@ -1411,7 +1417,7 @@ function showSessionFinished(mode) {
       <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-around text-center">
         <div>
           <div class="text-xs text-slate-400 font-bold">完成词数</div>
-          <div class="text-xl font-black text-slate-800">20 词</div>
+          <div class="text-xl font-black text-slate-800">${finishedCount} 词</div>
         </div>
         <div>
           <div class="text-xs text-slate-400 font-bold">记忆模式</div>
@@ -1425,7 +1431,7 @@ function showSessionFinished(mode) {
 
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
         <button onclick="startSessionWithMode('${mode}')" class="px-6 py-3 rounded-2xl bg-brand-500 text-white font-bold text-sm shadow-lg shadow-brand-500/25 hover:bg-brand-600 transition">
-          再来一组 (20词)
+          再来一组 (${finishedCount}词)
         </button>
         <button onclick="switchTab('chapter')" class="px-6 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition">
           返回词群全景
