@@ -274,7 +274,18 @@
                   <i data-lucide="volume-2" class="w-5 h-5"></i>
                 </button>
               </div>
-              <p id="fcFrontHint" class="text-xs text-slate-400">点击卡片或按空格键揭晓真经释义与考点搭配</p>
+
+              <!-- Front English Definition container (shown on demand or rating) -->
+              <div id="fcFrontEnDefContainer" class="hidden max-w-md mx-auto p-3.5 bg-indigo-50/90 rounded-2xl border border-indigo-200/80 text-center space-y-1 animate-fadeIn">
+                <div class="text-[11px] font-bold text-indigo-800 flex items-center justify-center gap-1">
+                  <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                  <span>英英核心释义 [English Definition]</span>
+                </div>
+                <div id="fcFrontEnDefinition" class="text-xs sm:text-sm font-semibold text-slate-800 italic"></div>
+                <div id="fcFrontMeaning" class="text-xs font-bold text-brand-700 pt-1 border-t border-indigo-100"></div>
+              </div>
+
+              <p id="fcFrontHint" class="text-xs text-slate-400">点击卡片或选择下方记忆选项揭晓英英释义与考点搭配</p>
             </div>
 
             <div class="text-xs text-slate-400 font-medium">
@@ -294,7 +305,14 @@
                   </button>
                 </div>
                 <div id="fcBackMeaning" class="text-base font-bold text-brand-700 mt-1">n. 大气层，大气圈；气氛</div>
-                <div id="fcBackEnDefinition" class="text-xs sm:text-sm font-medium text-slate-500 italic mt-1 leading-snug"></div>
+                <!-- Dedicated English Definition Container -->
+                <div id="fcBackEnDefContainer" class="p-3 bg-indigo-50/75 rounded-xl border border-indigo-200/70 mt-2 mb-1">
+                  <div class="text-[11px] font-bold text-indigo-800 flex items-center gap-1.5 mb-1">
+                    <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                    <span>英英核心释义 · 深度理解 [English Definition]</span>
+                  </div>
+                  <p id="fcBackEnDefinition" class="text-slate-800 text-xs sm:text-sm font-semibold italic leading-relaxed"></p>
+                </div>
               </div>
               <span id="fcBackPage" class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-500">P.002</span>
             </div>
@@ -338,23 +356,35 @@
       </div>
 
       <!-- Rating Buttons (SM-2 Spaced Repetition) -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-        <button onclick="rateCard(1)" class="p-3.5 rounded-2xl bg-white border-2 border-red-200 hover:border-red-500 hover:bg-red-50/50 text-red-600 font-bold text-sm shadow-xs transition flex flex-col items-center gap-1">
+      <div id="fcRatingButtons" class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+        <button onclick="rateCard(1)" class="p-3.5 rounded-2xl bg-white border-2 border-red-200 hover:border-red-500 hover:bg-red-50/50 text-red-600 font-bold text-sm shadow-xs transition flex flex-col items-center gap-1 cursor-pointer active:scale-95">
           <span>[ 1 ] 不认识</span>
           <span class="text-[10px] font-medium text-red-400">5分钟后重现</span>
         </button>
-        <button onclick="rateCard(2)" class="p-3.5 rounded-2xl bg-white border-2 border-amber-200 hover:border-amber-500 hover:bg-amber-50/50 text-amber-600 font-bold text-sm shadow-xs transition flex flex-col items-center gap-1">
+        <button onclick="rateCard(2)" class="p-3.5 rounded-2xl bg-white border-2 border-amber-200 hover:border-amber-500 hover:bg-amber-50/50 text-amber-600 font-bold text-sm shadow-xs transition flex flex-col items-center gap-1 cursor-pointer active:scale-95">
           <span>[ 2 ] 模糊</span>
           <span class="text-[10px] font-medium text-amber-400">12小时后复习</span>
         </button>
-        <button onclick="rateCard(3)" class="p-3.5 rounded-2xl bg-white border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50/50 text-blue-600 font-bold text-sm shadow-xs transition flex flex-col items-center gap-1">
+        <button onclick="rateCard(3)" class="p-3.5 rounded-2xl bg-white border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50/50 text-blue-600 font-bold text-sm shadow-xs transition flex flex-col items-center gap-1 cursor-pointer active:scale-95">
           <span>[ 3 ] 认识</span>
           <span class="text-[10px] font-medium text-blue-400">1-3天后复习</span>
         </button>
-        <button onclick="rateCard(4)" class="p-3.5 rounded-2xl bg-white border-2 border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-emerald-600 font-bold text-sm shadow-xs transition flex flex-col items-center gap-1">
+        <button onclick="rateCard(4)" class="p-3.5 rounded-2xl bg-white border-2 border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-emerald-600 font-bold text-sm shadow-xs transition flex flex-col items-center gap-1 cursor-pointer active:scale-95">
           <span>[ 4 ] 熟记已斩</span>
           <span class="text-[10px] font-medium text-emerald-400">1周后复习</span>
         </button>
+      </div>
+
+      <!-- Action bar after rating: Shows recorded status and Next Word button -->
+      <div id="fcNextActionBar" class="hidden flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-slate-200 shadow-md">
+        <div id="fcRatingFeedback" class="flex flex-wrap items-center gap-2"></div>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <button onclick="nextFlashcard()" class="w-full sm:w-auto px-7 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-md shadow-brand-500/25 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer">
+            <span>下一个单词</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            <span class="text-[11px] opacity-80 font-normal">(按空格或回车 ↵)</span>
+          </button>
+        </div>
       </div>
 
     </section>

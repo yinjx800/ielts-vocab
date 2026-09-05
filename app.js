@@ -743,9 +743,31 @@ function renderCurrentFlashcard() {
 
   const word = sess.items[sess.currentIndex];
   sess.isFlipped = false;
+  sess.isRated = false;
   
   const cardEl = document.getElementById('flashcardElement');
   cardEl.classList.remove('is-flipped');
+
+  // Reset rating buttons & next action bar
+  const ratingBtns = document.getElementById('fcRatingButtons');
+  const nextBar = document.getElementById('fcNextActionBar');
+  if (ratingBtns) ratingBtns.classList.remove('hidden');
+  if (nextBar) nextBar.classList.add('hidden');
+
+  // Reset front en definition
+  const frontEnEl = document.getElementById('fcFrontEnDefinition');
+  const frontEnCont = document.getElementById('fcFrontEnDefContainer');
+  const frontMeaning = document.getElementById('fcFrontMeaning');
+  if (frontEnEl && frontEnCont) {
+    if (word.en_definition) {
+      frontEnEl.textContent = word.en_definition;
+      if (frontMeaning) frontMeaning.textContent = word.meaning || '';
+    } else {
+      frontEnEl.textContent = '';
+      if (frontMeaning) frontMeaning.textContent = '';
+    }
+    frontEnCont.classList.add('hidden');
+  }
 
   // Update progress
   document.getElementById('fcSessionStatus').textContent = `第 ${sess.currentIndex + 1} / ${sess.items.length} 词`;
@@ -766,13 +788,14 @@ function renderCurrentFlashcard() {
   document.getElementById('fcBackPhonetic').textContent = word.phonetic || '';
   document.getElementById('fcBackMeaning').textContent = word.meaning || '暂无释义';
   const enDefEl = document.getElementById('fcBackEnDefinition');
+  const enDefCont = document.getElementById('fcBackEnDefContainer');
   if (enDefEl) {
     if (word.en_definition) {
       enDefEl.textContent = word.en_definition;
-      enDefEl.classList.remove('hidden');
+      if (enDefCont) enDefCont.classList.remove('hidden');
     } else {
       enDefEl.textContent = '';
-      enDefEl.classList.add('hidden');
+      if (enDefCont) enDefCont.classList.add('hidden');
     }
   }
   document.getElementById('fcBackPage').textContent = word.page ? `P.${String(word.page).padStart(3, '0')}` : '';
@@ -844,6 +867,47 @@ async function rateCard(rating) {
     study_mode: 'flashcard'
   });
 
+  sess.isRated = true;
+
+  // 1. 自动显示单词对应的英文释义与详尽考点：无论认识还是不认识，均自动翻面揭晓英英释义
+  if (!sess.isFlipped) {
+    flipFlashcard();
+  }
+
+  // 同时揭晓正面的英文释义区块
+  const frontEnCont = document.getElementById('fcFrontEnDefContainer');
+  if (frontEnCont) frontEnCont.classList.remove('hidden');
+
+  // 2. 切换底部操作区为“下一个单词”与评级状态反馈
+  const ratingBtns = document.getElementById('fcRatingButtons');
+  const nextBar = document.getElementById('fcNextActionBar');
+  const feedbackEl = document.getElementById('fcRatingFeedback');
+
+  const ratingInfo = {
+    1: { text: '不认识（5分钟后强化重现）', bg: 'bg-red-100', textCol: 'text-red-700', icon: 'alert-circle' },
+    2: { text: '模糊（12小时后复习）', bg: 'bg-amber-100', textCol: 'text-amber-700', icon: 'help-circle' },
+    3: { text: '认识（1-3天后巩固）', bg: 'bg-blue-100', textCol: 'text-blue-700', icon: 'check' },
+    4: { text: '熟记已斩（1周后巩固）', bg: 'bg-emerald-100', textCol: 'text-emerald-700', icon: 'sparkles' }
+  }[rating] || { text: '已记录记忆状态', bg: 'bg-slate-100', textCol: 'text-slate-700', icon: 'check' };
+
+  if (feedbackEl) {
+    feedbackEl.innerHTML = `
+      <span class="px-3 py-1.5 rounded-full ${ratingInfo.bg} ${ratingInfo.textCol} text-xs font-bold flex items-center gap-1.5 shadow-xs">
+        <i data-lucide="${ratingInfo.icon}" class="w-3.5 h-3.5"></i>
+        <span>已记录：${ratingInfo.text}</span>
+      </span>
+      <span class="text-xs text-slate-500 hidden sm:inline">已自动揭晓英文释义与真题搭配</span>
+    `;
+  }
+
+  if (ratingBtns) ratingBtns.classList.add('hidden');
+  if (nextBar) nextBar.classList.remove('hidden');
+
+  initIcons();
+}
+
+function nextFlashcard() {
+  const sess = state.flashcardSession;
   sess.currentIndex += 1;
   renderCurrentFlashcard();
 }
@@ -1508,17 +1572,31 @@ function setupKeyboardShortcuts() {
     }
 
     if (state.currentTab === 'flashcard') {
-      if (e.code === 'Space') {
+      const sess = state.flashcardSession;
+      if (e.code === 'Space' || e.code === 'Enter') {
         e.preventDefault();
-        flipFlashcard();
+        if (sess && sess.isRated) {
+          nextFlashcard();
+        } else {
+          flipFlashcard();
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (sess && sess.isRated) {
+          nextFlashcard();
+        }
       } else if (e.key === '1') {
-        rateCard(1);
+        if (sess && sess.isRated) nextFlashcard();
+        else rateCard(1);
       } else if (e.key === '2') {
-        rateCard(2);
+        if (sess && sess.isRated) nextFlashcard();
+        else rateCard(2);
       } else if (e.key === '3') {
-        rateCard(3);
+        if (sess && sess.isRated) nextFlashcard();
+        else rateCard(3);
       } else if (e.key === '4') {
-        rateCard(4);
+        if (sess && sess.isRated) nextFlashcard();
+        else rateCard(4);
       } else if (e.key.toLowerCase() === 'r') {
         playCurrentWordAudio();
       }
