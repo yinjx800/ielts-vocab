@@ -215,7 +215,7 @@ const DataManager = {
     return { total, page, limit, items };
   },
 
-  getStudySession(chapter_id, mode, count = (mode === 'quiz' ? 50 : 20)) {
+  getStudySession(chapter_id, mode, count = 50) {
     const cid = parseInt(chapter_id);
     const words = (this.wordsData && this.wordsData.words) ? this.wordsData.words.filter(w => w.chapter_id === cid) : [];
     if (!words || words.length === 0) {
@@ -546,20 +546,22 @@ function switchTab(tabName) {
   if (tabName === 'chapter') {
     loadChapterWords();
   } else if (tabName === 'flashcard') {
-    if (!state.flashcardSession.items.length) {
-      loadStudySessionData('flashcard');
+    const sess = state.flashcardSession;
+    if (!sess.items || !sess.items.length || sess.items.length === 20 || sess.currentIndex >= sess.items.length) {
+      loadStudySessionData('flashcard', true);
     } else {
       renderCurrentFlashcard();
     }
   } else if (tabName === 'spelling') {
-    if (!state.spellingSession.items.length) {
-      loadStudySessionData('spelling');
+    const sess = state.spellingSession;
+    if (!sess.items || !sess.items.length || sess.items.length === 20 || sess.currentIndex >= sess.items.length) {
+      loadStudySessionData('spelling', true);
     } else {
       renderCurrentSpelling();
     }
   } else if (tabName === 'quiz') {
     const sess = state.quizSession;
-    if (!sess.items || !sess.items.length || sess.currentIndex >= sess.items.length) {
+    if (!sess.items || !sess.items.length || sess.items.length === 20 || sess.currentIndex >= sess.items.length) {
       loadStudySessionData('quiz', true);
     } else {
       renderCurrentQuizQuestion();
@@ -855,7 +857,7 @@ async function loadStudySessionData(mode, forceReload = false) {
     if (!DataManager.isInitialized) {
       await DataManager.init();
     }
-    const count = (mode === 'quiz') ? 50 : 20;
+    const count = 50;
     const data = DataManager.getStudySession(state.currentChapterId, mode, count);
     
     if (mode === 'flashcard') {
@@ -1403,7 +1405,7 @@ function showSessionFinished(mode) {
   let viewId = `view-${mode}`;
   const container = document.getElementById(viewId);
   const sess = (mode === 'flashcard' ? state.flashcardSession : (mode === 'spelling' ? state.spellingSession : state.quizSession));
-  const finishedCount = (sess && sess.items && sess.items.length) ? sess.items.length : (mode === 'quiz' ? 50 : 20);
+  const finishedCount = (sess && sess.items && sess.items.length) ? sess.items.length : 50;
   container.innerHTML = `
     <div class="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-xl text-center space-y-6 max-w-xl mx-auto">
       <div class="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl">

@@ -222,7 +222,7 @@ def get_words(
 def get_study_session(
     chapter_id: int,
     mode: str = "flashcard", # flashcard, spelling, quiz, cloze
-    count: int = 20
+    count: int = 50
 ):
     """
     Returns a balanced study batch:
@@ -274,11 +274,10 @@ def get_study_session(
     import random
     if mode in ["quiz", "cloze"]:
         # 单词测验模式：全章节词汇均匀随机抽选 50 词
-        effective_count = 50 if count == 20 else count
         shuffled_all = list(words)
         random.shuffle(shuffled_all)
         session_batch = []
-        for w in shuffled_all[:effective_count]:
+        for w in shuffled_all[:count]:
             wid = w.get("id") or f"{w.get('chapter_id')}_{w['word']}"
             w_copy = dict(w)
             w_copy["is_starred"] = (wid in starred) or (w["word"] in starred)

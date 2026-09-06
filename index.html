@@ -60,7 +60,7 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="font-extrabold text-lg text-slate-900 tracking-tight">雅思词汇真经</span>
-            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">v2.8 50题极速抽测版</span>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">v2.9 全模式50词升级版</span>
           </div>
           <p class="text-xs text-slate-400 hidden sm:block">刘洪波逻辑词群 · 五维记忆算法</p>
         </div>
@@ -247,13 +247,13 @@
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-brand-100 text-brand-700">卡片记忆</span>
-          <span id="fcSessionStatus" class="text-xs font-semibold text-slate-500">第 1 / 20 词</span>
+          <span id="fcSessionStatus" class="text-xs font-semibold text-slate-500">第 1 / 50 词</span>
         </div>
         <div class="flex-1 max-w-xs bg-slate-100 rounded-full h-2.5 overflow-hidden">
           <div id="fcProgressBar" class="bg-gradient-to-r from-brand-500 to-amber-500 h-full w-0 transition-all duration-300"></div>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="reloadStudySession('flashcard')" class="p-2 rounded-xl text-slate-400 hover:text-brand-600 hover:bg-slate-100 transition flex items-center gap-1 text-xs font-medium cursor-pointer active:scale-95" title="重新随机换一组20词">
+          <button onclick="reloadStudySession('flashcard')" class="p-2 rounded-xl text-slate-400 hover:text-brand-600 hover:bg-slate-100 transition flex items-center gap-1 text-xs font-medium cursor-pointer active:scale-95" title="重新随机换一组50词">
             <i data-lucide="shuffle" class="w-4 h-4"></i>
             <span class="hidden sm:inline text-slate-500">换一组</span>
           </button>
@@ -405,8 +405,8 @@
         <div class="flex justify-between items-center text-xs font-semibold text-slate-400">
           <span id="spellChapterTag">Chapter 1 拼写特训</span>
           <div class="flex items-center gap-2">
-            <span id="spellProgress">第 1 / 20 词</span>
-            <button onclick="reloadStudySession('spelling')" class="text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1 cursor-pointer active:scale-95 text-xs font-medium" title="重新随机换一组20词">
+            <span id="spellProgress">第 1 / 50 词</span>
+            <button onclick="reloadStudySession('spelling')" class="text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1 cursor-pointer active:scale-95 text-xs font-medium" title="重新随机换一组50词">
               <i data-lucide="shuffle" class="w-3.5 h-3.5"></i>
               <span>换一组</span>
             </button>
@@ -754,7 +754,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="./app.js?v=20260905_v51"></script>
+  <script src="./app.js?v=20260905_v52"></script>
 </body>
 </html>
 
